@@ -1,11 +1,29 @@
 import { PrismaClient } from '@prisma/client'
 
-const globalForPrisma = global
+let prisma
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: ['query'],
+if (process.env.NODE_ENV === 'production') {
+  prisma = new PrismaClient({
+    log: ['query', 'error', 'warn'],
+    errorFormat: 'pretty',
+  })
+} else {
+  if (!global.__db) {
+    global.__db = new PrismaClient({
+      log: ['query', 'error', 'warn'],
+      errorFormat: 'pretty',
+    })
+  }
+  prisma = global.__db
+}
+
+// Test the connection
+prisma.$connect()
+  .then(() => {
+    console.log('Database connection successful')
+  })
+  .catch((error) => {
+    console.error('Database connection failed:', error)
   })
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export default prisma
