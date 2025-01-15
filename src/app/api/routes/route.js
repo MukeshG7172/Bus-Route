@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+
 import { NextResponse } from 'next/server';
-
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma'
 
 // GET handler - No changes needed as it will automatically include the new fields
 export async function GET() {

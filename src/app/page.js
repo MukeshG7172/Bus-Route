@@ -12,7 +12,6 @@ export default async function Home() {
   const session = await getServerSession(authOptions);
   let isAdmin = false;
 
-  // Set a default view as "buslog" if no searchParams are used
   const currentView = "buslog";
 
   if (session?.user?.email) {
