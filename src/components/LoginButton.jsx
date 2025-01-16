@@ -7,7 +7,7 @@ export default function LoginButton({ session }) {
     return (
       <button
         onClick={() => signIn('google')}
-        className="bg-blue-600 text-white px-4 py-2 rounded-md"
+        className="bg-yellow-400 text-black px-4 py-2 rounded-md"
       >
         Admin Login
       </button>
@@ -17,7 +17,7 @@ export default function LoginButton({ session }) {
   return (
     <button
       onClick={() => signOut()}
-      className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md"
+      className="bg-yellow-400 text-black px-4 py-2 rounded-md"
     >
       Logout
     </button>
