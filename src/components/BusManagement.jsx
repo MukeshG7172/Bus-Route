@@ -1,11 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { Loader2 } from 'lucide-react';
 
 export default function BusRouteManagement() {
     const [routes, setRoutes] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isFetchingRoutes, setIsFetchingRoutes] = useState(true);
     const [expandedRouteId, setExpandedRouteId] = useState(null);
     const [currentRoute, setCurrentRoute] = useState({
         routeName: '',
@@ -59,6 +61,7 @@ export default function BusRouteManagement() {
     };
 
     const fetchRoutes = async () => {
+        setIsFetchingRoutes(true);
         try {
             const response = await fetch('/api/routes');
             if (!response.ok) throw new Error('Failed to fetch routes');
@@ -67,11 +70,12 @@ export default function BusRouteManagement() {
                 ...route,
                 coordinators: route.coordinators || []
             }));
-
             setRoutes(routesWithCoordinators);
         } catch (error) {
             toast.error('Failed to load routes');
             console.error('Fetch error:', error);
+        } finally {
+            setIsFetchingRoutes(false);
         }
     };
 
@@ -190,6 +194,18 @@ export default function BusRouteManagement() {
         }
     };
 
+    const LoadingSpinner = () => (
+        <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-yellow-400" />
+        </div>
+    );
+
+    const LoadingOverlay = () => (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+            <Loader2 className="h-8 w-8 animate-spin text-yellow-400" />
+        </div>
+    );
+
 
     const resetForm = () => {
         setCurrentRoute({
@@ -242,43 +258,50 @@ export default function BusRouteManagement() {
 
     return (
         <div className="min-h-screen bg-black text-gray-200">
-           <header className="bg-yellow-400 py-3 px-6 shadow-lg relative">
-  <div className="max-w-7xl mx-auto flex justify-between items-center">
-    <img
-      src="/logo1.png"
-      alt="Left Logo"
-      className="h-[70px] w-[100px] sm:hidden rounded-full object-contain"
-    />
-    <img
-      src="/logo1.png"
-      alt="Left Logo"
-      className="hidden sm:block sm:h-[100px] sm:w-[200px] rounded-full object-contain"
-    />
+            <header className="bg-yellow-400 py-3 px-6 shadow-lg relative">
+                <div className="max-w-7xl mx-auto flex justify-between items-center">
+                    <img
+                        src="/logo1.png"
+                        alt="Left Logo"
+                        className="h-[70px] w-[100px] sm:hidden rounded-full object-contain"
+                    />
+                    <img
+                        src="/logo1.png"
+                        alt="Left Logo"
+                        className="hidden sm:block sm:h-[100px] sm:w-[200px] rounded-full object-contain"
+                    />
 
-    <div className="text-center">
-      <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-black tracking-wider">
-        BUS ROUTE
-      </h1>
-      <p className="text-black font-medium">Management System</p>
-    </div>
+                    <div className="text-center">
+                        <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-black tracking-wider">
+                            BUS ROUTE
+                        </h1>
+                        <p className="text-black font-medium">Management System</p>
+                    </div>
 
-    <img
-      src="/logo.png"
-      alt="Right Logo"
-      className="h-[70px] w-[70px] sm:hidden rounded-full object-contain"
-    />
-    <img
-      src="/logo.png"
-      alt="Right Logo"
-      className="hidden sm:block sm:h-[100px] sm:w-[100px] rounded-full object-contain"
-    />
-  </div>
-</header>
-
-
+                    <img
+                        src="/logo.png"
+                        alt="Right Logo"
+                        className="h-[70px] w-[70px] sm:hidden rounded-full object-contain"
+                    />
+                    <img
+                        src="/logo.png"
+                        alt="Right Logo"
+                        className="hidden sm:block sm:h-[100px] sm:w-[100px] rounded-full object-contain"
+                    />
+                </div>
+            </header>
 
             <div className="max-w-7xl mx-auto p-4 md:p-6">
-                <form onSubmit={handleSubmit} className="bg-gray-900 rounded-lg shadow-xl p-6 mb-8 border border-yellow-400/20">
+                <form onSubmit={handleSubmit} className="bg-gray-900 rounded-lg shadow-xl p-6 mb-8 border border-yellow-400/20 relative">
+                    {isLoading && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg backdrop-blur-sm z-50">
+                            <div className="bg-gray-900 p-4 rounded-lg shadow-xl flex items-center space-x-3">
+                                <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-yellow-400" />
+                                <span className="text-sm sm:text-base text-yellow-400 font-medium">Processing...</span>
+                            </div>
+                        </div>
+                    )}
+
                     <h2 className="text-2xl font-bold mb-6 text-yellow-400 border-b border-yellow-400/20 pb-2">
                         {isEditing ? 'Edit Route Details' : 'Add New Route'}
                     </h2>
@@ -349,7 +372,6 @@ export default function BusRouteManagement() {
                                 ))}
                             </div>
                         </div>
-
 
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium mb-1 text-yellow-400">Route Name</label>
@@ -438,88 +460,99 @@ export default function BusRouteManagement() {
 
                 <div className="space-y-4">
                     <h2 className="text-2xl font-bold mb-6 text-yellow-400 border-b border-yellow-400/20 pb-2">Active Routes</h2>
-                    {routes.map((route) => (
-                        <div key={route.id} className="bg-gray-900 rounded-lg overflow-hidden border border-yellow-400/20 hover:border-yellow-400/40 transition-colors">
-                            <div
-                                className="p-4 cursor-pointer hover:bg-gray-800/50 transition-colors"
-                                onClick={() => toggleRouteExpansion(route.id)}
-                            >
-                                <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-                                    <div>
-                                        <h3 className="text-xl font-semibold text-white mb-2">{route.routeName}</h3>
-                                        {route.description && (
-                                            <p className="text-gray-400 mb-3">{route.description}</p>
-                                        )}
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="px-3 py-1 bg-yellow-400 text-black rounded-full text-sm font-medium">
-                                                Bus {route.busNumber}
-                                            </span>
-                                            <span className="text-gray-400">•</span>
-                                            <span className="text-gray-400">{route.stops.length} stops</span>
-                                        </div>
-                                        <p className="text-gray-300">Driver: {route.driverName || 'Not assigned'}</p>
-                                        {/* Update coordinator display */}
-                                        {route.coordinators?.length > 0 && (
-                                            <div className="text-gray-300">
-                                                <p className="font-medium mb-1">Coordinators:</p>
-                                                {route.coordinators.map((coord, index) => (
-                                                    <p key={coord.id} className="ml-2 text-sm">
-                                                        {coord.name} - {coord.contactNumber}
-                                                    </p>
-                                                ))}
+                    {isFetchingRoutes ? (
+                        <div className="flex items-center justify-center p-8 bg-gray-900 rounded-lg border border-yellow-400/20">
+                            <div className="flex items-center space-x-3">
+                                <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-yellow-400" />
+                                <span className="text-sm sm:text-base text-yellow-400 font-medium">Loading routes...</span>
+                            </div>
+                        </div>
+                    ) : routes.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-900 rounded-lg border border-yellow-400/20">
+                            <p className="text-gray-400">No routes found. Create your first route above.</p>
+                        </div>
+                    ) : (
+                        routes.map((route) => (
+                            <div key={route.id} className="bg-gray-900 rounded-lg overflow-hidden border border-yellow-400/20 hover:border-yellow-400/40 transition-colors">
+                                <div
+                                    className="p-4 cursor-pointer hover:bg-gray-800/50 transition-colors"
+                                    onClick={() => toggleRouteExpansion(route.id)}
+                                >
+                                    <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                                        <div>
+                                            <h3 className="text-xl font-semibold text-white mb-2">{route.routeName}</h3>
+                                            {route.description && (
+                                                <p className="text-gray-400 mb-3">{route.description}</p>
+                                            )}
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="px-3 py-1 bg-yellow-400 text-black rounded-full text-sm font-medium">
+                                                    Bus {route.busNumber}
+                                                </span>
+                                                <span className="text-gray-400">•</span>
+                                                <span className="text-gray-400">{route.stops.length} stops</span>
                                             </div>
-                                        )}
-                                    </div>
-                                    <div className="flex gap-2 ml-auto">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleEdit(route);
-                                            }}
-                                            className="px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors font-medium"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDelete(route.id);
-                                            }}
-                                            className="px-4 py-2 bg-red-500/80 text-white rounded-lg hover:bg-red-600 transition-colors"
-                                        >
-                                            Delete
-                                        </button>
+                                            <p className="text-gray-300">Driver: {route.driverName || 'Not assigned'}</p>
+                                            {route.coordinators?.length > 0 && (
+                                                <div className="text-gray-300">
+                                                    <p className="font-medium mb-1">Coordinators:</p>
+                                                    {route.coordinators.map((coord, index) => (
+                                                        <p key={coord.id} className="ml-2 text-sm">
+                                                            {coord.name} - {coord.contactNumber}
+                                                        </p>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2 ml-auto">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleEdit(route);
+                                                }}
+                                                className="px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors font-medium"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(route.id);
+                                                }}
+                                                className="px-4 py-2 bg-red-500/80 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {expandedRouteId === route.id && (
-                                <div className="border-t border-yellow-400/10 p-4 bg-gray-800">
-                                    <div className="mb-4">
-                                        <h4 className="font-medium mb-3 text-yellow-400">Coordinators:</h4>
+                                {expandedRouteId === route.id && (
+                                    <div className="border-t border-yellow-400/10 p-4 bg-gray-800">
+                                        <div className="mb-4">
+                                            <h4 className="font-medium mb-3 text-yellow-400">Coordinators:</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {route.coordinators?.map((coordinator) => (
+                                                    <div key={coordinator.id} className="flex justify-between bg-gray-900 p-3 rounded-lg">
+                                                        <span className="font-medium text-gray-200">{coordinator.name}</span>
+                                                        <span className="text-yellow-400">{coordinator.contactNumber}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <h4 className="font-medium mb-3 text-yellow-400">Route Stops:</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {route.coordinators?.map((coordinator) => (
-                                                <div key={coordinator.id} className="flex justify-between bg-gray-900 p-3 rounded-lg">
-                                                    <span className="font-medium text-gray-200">{coordinator.name}</span>
-                                                    <span className="text-yellow-400">{coordinator.contactNumber}</span>
+                                            {route.stops.map((stop) => (
+                                                <div key={stop.id} className="flex justify-between bg-gray-900 p-3 rounded-lg">
+                                                    <span className="font-medium text-gray-200">{stop.name}</span>
+                                                    <span className="text-yellow-400">{stop.time}</span>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-
-                                    <h4 className="font-medium mb-3 text-yellow-400">Route Stops:</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {route.stops.map((stop) => (
-                                            <div key={stop.id} className="flex justify-between bg-gray-900 p-3 rounded-lg">
-                                                <span className="font-medium text-gray-200">{stop.name}</span>
-                                                <span className="text-yellow-400">{stop.time}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                                )}
+                            </div>
+                        )))}
                 </div>
             </div>
         </div>
