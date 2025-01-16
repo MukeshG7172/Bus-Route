@@ -12,8 +12,7 @@ export default function BusRouteManagement() {
         description: '',
         busNumber: '',
         driverName: '',
-        contactNumber: '',
-        coordinatorName: '',
+        coordinators: [{ name: '', contactNumber: '' }],
         stops: [{ name: '', time: '', order: 0 }]
     });
 
@@ -23,6 +22,35 @@ export default function BusRouteManagement() {
 
     const toggleRouteExpansion = (routeId) => {
         setExpandedRouteId(expandedRouteId === routeId ? null : routeId);
+    };
+
+
+    const removeCoordinator = (index) => {
+        if (currentRoute.coordinators.length <= 1) {
+            toast.error('Route must have at least one coordinator');
+            return;
+        }
+        const newCoordinators = currentRoute.coordinators.filter((_, i) => i !== index);
+        setCurrentRoute(prev => ({ ...prev, coordinators: newCoordinators }));
+    };
+
+    const handleCoordinatorChange = (index, field, value) => {
+        const newCoordinators = [...currentRoute.coordinators];
+        newCoordinators[index] = {
+            ...newCoordinators[index],
+            [field]: value
+        };
+        setCurrentRoute(prev => ({ ...prev, coordinators: newCoordinators }));
+    };
+
+    const addCoordinator = () => {
+        setCurrentRoute(prev => ({
+            ...prev,
+            coordinators: [
+                ...prev.coordinators,
+                { name: '', contactNumber: '' }
+            ]
+        }));
     };
 
     const handleCancel = () => {
@@ -35,12 +63,18 @@ export default function BusRouteManagement() {
             const response = await fetch('/api/routes');
             if (!response.ok) throw new Error('Failed to fetch routes');
             const data = await response.json();
-            setRoutes(data);
+            const routesWithCoordinators = data.map(route => ({
+                ...route,
+                coordinators: route.coordinators || []
+            }));
+
+            setRoutes(routesWithCoordinators);
         } catch (error) {
             toast.error('Failed to load routes');
             console.error('Fetch error:', error);
         }
     };
+
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -89,14 +123,14 @@ export default function BusRouteManagement() {
             toast.error('Bus number is required');
             return false;
         }
-        if (!currentRoute.contactNumber.trim()) {
-            toast.error('Contact number is required');
-            return false;
+
+        for (const coordinator of currentRoute.coordinators) {
+            if (!coordinator.name.trim() || !coordinator.contactNumber.trim()) {
+                toast.error('All coordinators must have a name and contact number');
+                return false;
+            }
         }
-        if (!currentRoute.coordinatorName.trim()) {
-            toast.error('Coordinator name is required');
-            return false;
-        }
+
         for (const stop of currentRoute.stops) {
             if (!stop.name.trim() || !stop.time) {
                 toast.error('All stops must have a name and time');
@@ -115,10 +149,28 @@ export default function BusRouteManagement() {
             const url = isEditing ? `/api/routes/${currentRoute.id}` : '/api/routes';
             const method = isEditing ? 'PUT' : 'POST';
 
+            const routeData = {
+                routeName: currentRoute.routeName,
+                description: currentRoute.description,
+                busNumber: currentRoute.busNumber,
+                driverName: currentRoute.driverName,
+                stops: currentRoute.stops.map(stop => ({
+                    name: stop.name,
+                    time: stop.time,
+                    order: stop.order,
+                    ...(stop.id ? { id: stop.id } : {})
+                })),
+                coordinators: currentRoute.coordinators.map(coord => ({
+                    name: coord.name,
+                    contactNumber: coord.contactNumber,
+                    ...(coord.id ? { id: coord.id } : {})
+                }))
+            };
+
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(currentRoute),
+                body: JSON.stringify(routeData),
             });
 
             if (!response.ok) {
@@ -138,22 +190,27 @@ export default function BusRouteManagement() {
         }
     };
 
+
     const resetForm = () => {
         setCurrentRoute({
             routeName: '',
             description: '',
             busNumber: '',
             driverName: '',
-            contactNumber: '',
-            coordinatorName: '',
+            coordinators: [{ name: '', contactNumber: '' }],
             stops: [{ name: '', time: '', order: 0 }]
         });
         setIsEditing(false);
     };
 
     const handleEdit = (route) => {
+        const coordinators = route.coordinators?.length > 0
+            ? route.coordinators
+            : [{ name: '', contactNumber: '' }];
+
         setCurrentRoute({
             ...route,
+            coordinators: coordinators,
             stops: route.stops
                 .sort((a, b) => a.order - b.order)
                 .map(stop => ({
@@ -185,18 +242,40 @@ export default function BusRouteManagement() {
 
     return (
         <div className="min-h-screen bg-black text-gray-200">
-            <header className="bg-yellow-400 py-3 px-6 shadow-lg relative">
-                <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <img src="/logo1.png" alt="Left Logo" className="h-[100px] w-[100px] rounded-full " />
-                    <div className="text-center">
-                        <h1 className="text-3xl md:text-5xl font-bold text-black tracking-wider">
-                            BUS ROUTE
-                        </h1>
-                        <p className="text-black font-medium">Management System</p>
-                    </div>
-                    <img src="/logo.png" alt="Right Logo" className="h-[100px] w-[100px] rounded-full " />
-                </div>
-            </header>
+           <header className="bg-yellow-400 py-3 px-6 shadow-lg relative">
+  <div className="max-w-7xl mx-auto flex justify-between items-center">
+    <img
+      src="/logo1.png"
+      alt="Left Logo"
+      className="h-[70px] w-[100px] sm:hidden rounded-full object-contain"
+    />
+    <img
+      src="/logo1.png"
+      alt="Left Logo"
+      className="hidden sm:block sm:h-[100px] sm:w-[200px] rounded-full object-contain"
+    />
+
+    <div className="text-center">
+      <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-black tracking-wider">
+        BUS ROUTE
+      </h1>
+      <p className="text-black font-medium">Management System</p>
+    </div>
+
+    <img
+      src="/logo.png"
+      alt="Right Logo"
+      className="h-[70px] w-[70px] sm:hidden rounded-full object-contain"
+    />
+    <img
+      src="/logo.png"
+      alt="Right Logo"
+      className="hidden sm:block sm:h-[100px] sm:w-[100px] rounded-full object-contain"
+    />
+  </div>
+</header>
+
+
 
             <div className="max-w-7xl mx-auto p-4 md:p-6">
                 <form onSubmit={handleSubmit} className="bg-gray-900 rounded-lg shadow-xl p-6 mb-8 border border-yellow-400/20">
@@ -227,28 +306,51 @@ export default function BusRouteManagement() {
                                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-white"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1 text-yellow-400">Contact Number</label>
-                            <input
-                                type="tel"
-                                name="contactNumber"
-                                value={currentRoute.contactNumber}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-white"
-                                required
-                            />
+
+                        <div className="mb-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-semibold text-yellow-400">Coordinators</h2>
+                                <button
+                                    type="button"
+                                    onClick={addCoordinator}
+                                    className="px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors font-medium"
+                                >
+                                    Add Coordinator
+                                </button>
+                            </div>
+
+                            <div className="space-y-4 bg-gray-800 p-4 rounded-lg">
+                                {currentRoute.coordinators.map((coordinator, index) => (
+                                    <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <input
+                                            type="text"
+                                            value={coordinator.name}
+                                            onChange={(e) => handleCoordinatorChange(index, 'name', e.target.value)}
+                                            placeholder="Coordinator Name"
+                                            className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-white"
+                                            required
+                                        />
+                                        <input
+                                            type="tel"
+                                            value={coordinator.contactNumber}
+                                            onChange={(e) => handleCoordinatorChange(index, 'contactNumber', e.target.value)}
+                                            placeholder="Contact Number"
+                                            className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-white"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeCoordinator(index)}
+                                            className="px-4 py-2 bg-red-500/80 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1 text-yellow-400">Coordinator Name</label>
-                            <input
-                                type="text"
-                                name="coordinatorName"
-                                value={currentRoute.coordinatorName}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-white"
-                                required
-                            />
-                        </div>
+
+
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium mb-1 text-yellow-400">Route Name</label>
                             <input
@@ -356,8 +458,17 @@ export default function BusRouteManagement() {
                                             <span className="text-gray-400">{route.stops.length} stops</span>
                                         </div>
                                         <p className="text-gray-300">Driver: {route.driverName || 'Not assigned'}</p>
-                                        <p className="text-gray-300">Contact: {route.contactNumber}</p>
-                                        <p className="text-gray-300">Coordinator: {route.coordinatorName}</p>
+                                        {/* Update coordinator display */}
+                                        {route.coordinators?.length > 0 && (
+                                            <div className="text-gray-300">
+                                                <p className="font-medium mb-1">Coordinators:</p>
+                                                {route.coordinators.map((coord, index) => (
+                                                    <p key={coord.id} className="ml-2 text-sm">
+                                                        {coord.name} - {coord.contactNumber}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex gap-2 ml-auto">
                                         <button
@@ -384,11 +495,23 @@ export default function BusRouteManagement() {
 
                             {expandedRouteId === route.id && (
                                 <div className="border-t border-yellow-400/10 p-4 bg-gray-800">
+                                    <div className="mb-4">
+                                        <h4 className="font-medium mb-3 text-yellow-400">Coordinators:</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {route.coordinators?.map((coordinator) => (
+                                                <div key={coordinator.id} className="flex justify-between bg-gray-900 p-3 rounded-lg">
+                                                    <span className="font-medium text-gray-200">{coordinator.name}</span>
+                                                    <span className="text-yellow-400">{coordinator.contactNumber}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     <h4 className="font-medium mb-3 text-yellow-400">Route Stops:</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {route.stops.map((stop, index) => (
+                                        {route.stops.map((stop) => (
                                             <div key={stop.id} className="flex justify-between bg-gray-900 p-3 rounded-lg">
-                                                <span className="font-medium text-gray-200">{index + 1}. {stop.name}</span>
+                                                <span className="font-medium text-gray-200">{stop.name}</span>
                                                 <span className="text-yellow-400">{stop.time}</span>
                                             </div>
                                         ))}

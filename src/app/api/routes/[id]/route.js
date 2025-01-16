@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import  prisma  from '@/lib/prisma'
+import prisma from '@/lib/prisma'
 
 export async function PUT(request, { params }) {
   try {
@@ -11,42 +11,64 @@ export async function PUT(request, { params }) {
 
     const { id } = params;
     const body = await request.json();
-    const { routeName, description, busNumber, driverName, contactNumber, coordinatorName, stops } = body;
+    const { routeName, description, busNumber, driverName, coordinators, stops } = body;
 
     // Validate required fields
-    if (!routeName || !busNumber || !contactNumber || !coordinatorName || !stops) {
+    if (!routeName || !busNumber || !coordinators || !stops) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Get existing stops
+    // Get existing stops and coordinators
     const existingStops = await prisma.stop.findMany({
       where: { busRouteId: id }
     });
 
-    // Create a map of existing stops by their id
+    const existingCoordinators = await prisma.coordinator.findMany({
+      where: { busRouteId: id }
+    });
+
+    // Create maps of existing items by their id
     const existingStopsMap = new Map(
       existingStops.map(stop => [stop.id, stop])
     );
 
-    // Separate stops into updates and creates
+    const existingCoordinatorsMap = new Map(
+      existingCoordinators.map(coordinator => [coordinator.id, coordinator])
+    );
+
+    // Separate items into updates and creates
     const stopsToUpdate = stops.filter(stop => stop.id);
     const stopsToCreate = stops.filter(stop => !stop.id);
 
-    // Delete stops that are no longer in the updated list
+    const coordinatorsToUpdate = coordinators.filter(coord => coord.id);
+    const coordinatorsToCreate = coordinators.filter(coord => !coord.id);
+
+    // Get IDs of items to delete
     const updatedStopIds = new Set(stopsToUpdate.map(stop => stop.id));
     const stopsToDelete = existingStops
       .filter(stop => !updatedStopIds.has(stop.id))
       .map(stop => stop.id);
 
+    const updatedCoordinatorIds = new Set(coordinatorsToUpdate.map(coord => coord.id));
+    const coordinatorsToDelete = existingCoordinators
+      .filter(coord => !updatedCoordinatorIds.has(coord.id))
+      .map(coord => coord.id);
+
     // Update route with new data using transaction
     const updatedRoute = await prisma.$transaction(async (tx) => {
-      // Delete removed stops
+      // Delete removed items
       if (stopsToDelete.length > 0) {
         await tx.stop.deleteMany({
           where: { id: { in: stopsToDelete } }
+        });
+      }
+
+      if (coordinatorsToDelete.length > 0) {
+        await tx.coordinator.deleteMany({
+          where: { id: { in: coordinatorsToDelete } }
         });
       }
 
@@ -58,6 +80,17 @@ export async function PUT(request, { params }) {
             name: stop.name,
             time: stop.time,
             order: stop.order
+          }
+        });
+      }
+
+      // Update existing coordinators
+      for (const coordinator of coordinatorsToUpdate) {
+        await tx.coordinator.update({
+          where: { id: coordinator.id },
+          data: {
+            name: coordinator.name,
+            contactNumber: coordinator.contactNumber
           }
         });
       }
@@ -74,6 +107,17 @@ export async function PUT(request, { params }) {
         });
       }
 
+      // Create new coordinators
+      if (coordinatorsToCreate.length > 0) {
+        await tx.coordinator.createMany({
+          data: coordinatorsToCreate.map(coordinator => ({
+            name: coordinator.name,
+            contactNumber: coordinator.contactNumber,
+            busRouteId: id
+          }))
+        });
+      }
+
       // Update route with new fields
       return await tx.busRoute.update({
         where: { id },
@@ -82,15 +126,14 @@ export async function PUT(request, { params }) {
           description,
           busNumber,
           driverName,
-          contactNumber,
-          coordinatorName,
         },
         include: {
           stops: {
             orderBy: {
               order: 'asc'
             }
-          }
+          },
+          coordinators: true
         }
       });
     });
@@ -105,7 +148,7 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE handler
+// DELETE handler remains the same
 export async function DELETE(request, { params }) {
   try {
     const session = await getServerSession();
