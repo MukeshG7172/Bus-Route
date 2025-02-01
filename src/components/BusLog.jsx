@@ -2151,7 +2151,7 @@ const BusRouteViewer = () => {
           "time": "6.35"
         },
         {
-          "name": "CHENNAI -- TRADING CENTRE NANDHAMBAKKAM",
+          "name": "CHENNAI -- TRADE CENTRE NANDHAMBAKKAM",
           "time": "6.40"
         },
         {
