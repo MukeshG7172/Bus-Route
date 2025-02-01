@@ -2065,7 +2065,7 @@ const BusRouteViewer = () => {
           "time": "6.30"
         },
         {
-          "name": "CHENNAI -- TRADING CENTRE",
+          "name": "CHENNAI -- TRADE CENTRE",
           "time": "6.35"
         },
         {
