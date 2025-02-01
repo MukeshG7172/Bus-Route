@@ -2327,8 +2327,8 @@ const BusRouteViewer = () => {
     }
 
     const matchingRouteIds = new Set(
-      routes.filter(route => 
-        route.stops.some(stop => 
+      routes.filter(route =>
+        route.stops.some(stop =>
           stop.name.toLowerCase().includes(query)
         )
       ).map(route => route.id)
@@ -2360,25 +2360,47 @@ const BusRouteViewer = () => {
   // Helper function to highlight matching text
   const highlightMatch = (text, query) => {
     if (!query) return text;
-    
+
     const parts = text.split(new RegExp(`(${query})`, 'gi'));
-    return parts.map((part, index) => 
-      part.toLowerCase() === query.toLowerCase() ? 
-        <span key={index} className="bg-yellow-400/30">{part}</span> : 
+    return parts.map((part, index) =>
+      part.toLowerCase() === query.toLowerCase() ?
+        <span key={index} className="bg-yellow-400/30">{part}</span> :
         part
     );
   };
 
   return (
     <div className="min-h-screen bg-black text-gray-200">
-      <header className="bg-yellow-400 py-3 px-6 shadow-lg">
-        <div className="max-w-7xl mx-auto flex justify-center items-center">
+      <header className="bg-yellow-400 py-3 px-6 shadow-lg relative">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <img
+            src="/logo1.png"
+            alt="Left Logo"
+            className="h-[70px] w-[100px] sm:hidden rounded-full object-contain"
+          />
+          <img
+            src="/logo1.png"
+            alt="Left Logo"
+            className="hidden sm:block sm:h-[100px] sm:w-[200px] rounded-full object-contain"
+          />
+
           <div className="text-center">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black tracking-wider">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-black tracking-wider">
               BUS ROUTE
             </h1>
             <p className="text-black font-medium">Management System</p>
           </div>
+
+          <img
+            src="/logo.png"
+            alt="Right Logo"
+            className="h-[70px] w-[70px] sm:hidden rounded-full object-contain"
+          />
+          <img
+            src="/logo.png"
+            alt="Right Logo"
+            className="hidden sm:block sm:h-[100px] sm:w-[100px] rounded-full object-contain"
+          />
         </div>
       </header>
 
@@ -2418,8 +2440,8 @@ const BusRouteViewer = () => {
                       </h3>
                     </div>
                   </div>
-                  {expandedRouteIds.has(route.id) ? 
-                    <ChevronUp className="text-yellow-400 h-5 w-5" /> : 
+                  {expandedRouteIds.has(route.id) ?
+                    <ChevronUp className="text-yellow-400 h-5 w-5" /> :
                     <ChevronDown className="text-yellow-400 h-5 w-5" />
                   }
                 </div>
@@ -2433,8 +2455,8 @@ const BusRouteViewer = () => {
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {route.stops.map((stop, index) => (
-                      <div 
-                        key={index} 
+                      <div
+                        key={index}
                         className="flex justify-between items-center p-3 rounded-lg bg-gray-900"
                       >
                         <span className="font-medium text-gray-200">
